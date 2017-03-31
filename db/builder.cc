@@ -11,6 +11,7 @@
 #include "leveldb/db.h"
 #include "leveldb/env.h"
 #include "leveldb/iterator.h"
+#include <iostream>
 
 namespace leveldb {
 
@@ -37,7 +38,9 @@ Status BuildTable(const std::string& dbname,
     for (; iter->Valid(); iter->Next()) {
       Slice key = iter->key();
       meta->largest.DecodeFrom(key);
-      builder->Add(key, iter->value());
+      // builder->Add(key, iter->value());
+      builder->Add(key, Slice());
+      std::cout << Slice(key.data(), key.size()-8).ToString() << std::endl;
     }
 
     // Finish and check for builder errors
