@@ -40,7 +40,10 @@ Status BuildTable(const std::string& dbname,
       meta->largest.DecodeFrom(key);
       // builder->Add(key, iter->value());
       builder->Add(key, Slice());
-      std::cout << Slice(key.data(), key.size()-8).ToString() << std::endl;
+      std::cout << meta->largest.DebugString() << std::endl;
+      std::cout << "usekey " << ExtractUserKey(key).ToString() << std::endl;
+      std::cout << "seqnumber " << ExtractSequenceNumber(key) << std::endl;
+      std::cout << "valueType " << ExtractValueType(key) << std::endl;
     }
 
     // Finish and check for builder errors

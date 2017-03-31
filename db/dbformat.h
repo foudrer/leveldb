@@ -100,6 +100,14 @@ inline Slice ExtractUserKey(const Slice& internal_key) {
   return Slice(internal_key.data(), internal_key.size() - 8);
 }
 
+inline SequenceNumber ExtractSequenceNumber(const Slice& internal_key) {
+  assert(internal_key.size() >= 8);
+  const size_t n = internal_key.size();
+  uint64_t num = DecodeFixed64(internal_key.data() + n - 8);
+  num >>= 8;
+  return num;
+}
+
 inline ValueType ExtractValueType(const Slice& internal_key) {
   assert(internal_key.size() >= 8);
   const size_t n = internal_key.size();
