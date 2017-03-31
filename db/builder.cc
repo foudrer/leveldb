@@ -42,6 +42,7 @@ Status BuildTable(const std::string& dbname,
       builder->Add(key, Slice());
       std::cout << meta->largest.DebugString() << std::endl;
       std::cout << "usekey " << ExtractUserKey(key).ToString() << std::endl;
+      std::cout << "seqnumbervaluetype " << ExtractSequenceNumberandValueType(key) << std::endl;
       std::cout << "seqnumber " << ExtractSequenceNumber(key) << std::endl;
       std::cout << "valueType " << ExtractValueType(key) << std::endl;
     }
