@@ -155,8 +155,8 @@ void TableBuilder::WriteBlock(BlockBuilder* block, BlockHandle* handle) {
 
     case kSnappyCompression: {
       std::string* compressed = &r->compressed_output;
-      if (port::Snappy_Compress(raw.data(), raw.size(), compressed) &&
-          compressed->size() < raw.size() - (raw.size() / 8u)) {
+      bool compress_result = port::Snappy_Compress(raw.data(), raw.size(), compressed);
+      if (compress_result && compressed->size() < raw.size() - (raw.size() / 8u)) { // 将data block进行压缩
         block_contents = *compressed;
       } else {
         // Snappy not supported, or compressed less than 12.5%, so just
@@ -178,8 +178,8 @@ void TableBuilder::WriteRawBlock(const Slice& block_contents,
   Rep* r = rep_;
   handle->set_offset(r->offset);
   handle->set_size(block_contents.size());
-  r->status = r->file->Append(block_contents);
-  if (r->status.ok()) {
+  r->status = r->file->Append(block_contents); // 将压缩后的内容append到文件中
+  if (r->status.ok()) {  // 添加校验码:1) 生成校验码; 2) 将校验码append到文件中
     char trailer[kBlockTrailerSize];
     trailer[0] = type;
     uint32_t crc = crc32c::Value(block_contents.data(), block_contents.size());

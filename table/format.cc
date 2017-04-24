@@ -87,7 +87,7 @@ Status ReadBlock(RandomAccessFile* file,
 
   // Check the crc of the type and the block contents
   const char* data = contents.data();    // Pointer to where Read put the data
-  if (options.verify_checksums) {
+  if (options.verify_checksums) {   // 校验码验证
     const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
     const uint32_t actual = crc32c::Value(data, n + 1);
     if (actual != crc) {
@@ -122,7 +122,8 @@ Status ReadBlock(RandomAccessFile* file,
         return Status::Corruption("corrupted compressed block contents");
       }
       char* ubuf = new char[ulength];
-      if (!port::Snappy_Uncompress(data, n, ubuf)) {
+      bool uncompress_result = port::Snappy_Uncompress(data, n, ubuf); // 解压缩
+      if (!uncompress_result) {
         delete[] buf;
         delete[] ubuf;
         return Status::Corruption("corrupted compressed block contents");
