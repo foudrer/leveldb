@@ -91,19 +91,22 @@ Status TableBuilder::ChangeOptions(const Options& options) {
 }
 
 void TableBuilder::Add(const Slice& key, const Slice& value) {
+#ifdef TABLEADD
   struct timeval start, end;
   double index_block_add = 0;
   double filter_block_add = 0;
   double data_block_add = 0;
   double flush = 0;
+#endif
   Rep* r = rep_;
   assert(!r->closed);
   if (!ok()) return;
   if (r->num_entries > 0) {
     assert(r->options.comparator->Compare(key, Slice(r->last_key)) > 0);
   }
-
+#ifdef TABLEADD
   gettimeofday(&start, NULL);
+#endif
   if (r->pending_index_entry) {
     assert(r->data_block.empty());
     r->options.comparator->FindShortestSeparator(&r->last_key, key);
@@ -112,35 +115,45 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
     r->index_block.Add(r->last_key, Slice(handle_encoding));
     r->pending_index_entry = false;
   }
+#ifdef TABLEADD
   gettimeofday(&end, NULL);
   index_block_add = timeval_diff(&start, &end);
 
   gettimeofday(&start, NULL);
+#endif
+
   if (r->filter_block != NULL) {
     r->filter_block->AddKey(key);
   }
+#ifdef TABLEADD
   gettimeofday(&end, NULL);
   filter_block_add = timeval_diff(&start, &end);
 
-
   gettimeofday(&start, NULL);
+#endif
+
   r->last_key.assign(key.data(), key.size());
   r->num_entries++;
   r->data_block.Add(key, value);
+#ifdef TABLEADD
   gettimeofday(&end, NULL);
   data_block_add = timeval_diff(&start, &end);
 
   gettimeofday(&start, NULL);
+#endif
+
   const size_t estimated_block_size = r->data_block.CurrentSizeEstimate();
   if (estimated_block_size >= r->options.block_size) {
     Flush();
   }
+#ifdef TABLEADD
   gettimeofday(&end, NULL);
   flush = timeval_diff(&start, &end);
 
   std::cout << "index_block_add " << index_block_add << " filter_block_add "
             << filter_block_add << " data_block_add " << data_block_add
             << " flush " << flush << std::endl;
+#endif
 }
 
 void TableBuilder::Flush() {
