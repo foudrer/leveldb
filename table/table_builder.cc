@@ -14,6 +14,7 @@
 #include "table/format.h"
 #include "util/coding.h"
 #include "util/crc32c.h"
+#include "leveldb/statistics.h"
 
 namespace leveldb {
 
@@ -90,6 +91,11 @@ Status TableBuilder::ChangeOptions(const Options& options) {
 }
 
 void TableBuilder::Add(const Slice& key, const Slice& value) {
+  struct timeval start, end;
+  double index_block_add = 0;
+  double filter_block_add = 0;
+  double data_block_add = 0;
+  double flush = 0;
   Rep* r = rep_;
   assert(!r->closed);
   if (!ok()) return;
@@ -97,6 +103,7 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
     assert(r->options.comparator->Compare(key, Slice(r->last_key)) > 0);
   }
 
+  gettimeofday(&start, NULL);
   if (r->pending_index_entry) {
     assert(r->data_block.empty());
     r->options.comparator->FindShortestSeparator(&r->last_key, key);
@@ -105,19 +112,35 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
     r->index_block.Add(r->last_key, Slice(handle_encoding));
     r->pending_index_entry = false;
   }
+  gettimeofday(&end, NULL);
+  index_block_add = timeval_diff(&start, &end);
 
+  gettimeofday(&start, NULL);
   if (r->filter_block != NULL) {
     r->filter_block->AddKey(key);
   }
+  gettimeofday(&end, NULL);
+  filter_block_add = timeval_diff(&start, &end);
 
+
+  gettimeofday(&start, NULL);
   r->last_key.assign(key.data(), key.size());
   r->num_entries++;
   r->data_block.Add(key, value);
+  gettimeofday(&end, NULL);
+  data_block_add = timeval_diff(&start, &end);
 
+  gettimeofday(&start, NULL);
   const size_t estimated_block_size = r->data_block.CurrentSizeEstimate();
   if (estimated_block_size >= r->options.block_size) {
     Flush();
   }
+  gettimeofday(&end, NULL);
+  flush = timeval_diff(&start, &end);
+
+  std::cout << "index_block_add " << index_block_add << " filter_block_add "
+            << filter_block_add << " data_block_add " << data_block_add
+            << " flush " << flush << std::endl;
 }
 
 void TableBuilder::Flush() {
