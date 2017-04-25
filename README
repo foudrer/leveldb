@@ -1,0 +1,10 @@
+SSTable Write Analysis
+macro definition
+1. BUILDTABLE
+2. TABLEADD
+3. TABLEFLUSH
+4. WRITEBLOCK
+5. WRITERAWBLOCK
+
+SSTable Read Analysis
+macro definition
