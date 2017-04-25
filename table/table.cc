@@ -327,8 +327,9 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k,
     s = iiter->status();
   }
   delete iiter;
-
+#ifdef INTERNALGET
   std::cout << "seek " << seek << " blockread " << blockread << " blockseek " << blockseek << std::endl;
+#endif
   return s;
 }
 
