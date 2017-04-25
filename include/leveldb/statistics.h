@@ -1,3 +1,4 @@
+#include <iostream>
 #include <time.h>
 #include <sys/time.h>
 #include <assert.h>
@@ -20,7 +21,7 @@ inline double timespec_diff(const struct timespec *start, const struct timespec 
     if (end->tv_nsec > start->tv_nsec)
         r += (end->tv_nsec - start->tv_nsec);
     else
-        r -= (start->tv_usec - end->tv_usec);
+        r -= (start->tv_nsec - end->tv_nsec);
 
     return (double)(r / 1000000000);
 }
