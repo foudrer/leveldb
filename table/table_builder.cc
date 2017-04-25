@@ -157,33 +157,77 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
 }
 
 void TableBuilder::Flush() {
+#ifdef TABLEFLUSH
+  struct timeval start, end;
+  double writeblock = 0;
+  double fileflush = 0;
+  double filterblockstart = 0;
+#endif
   Rep* r = rep_;
   assert(!r->closed);
   if (!ok()) return;
   if (r->data_block.empty()) return;
   assert(!r->pending_index_entry);
+#ifdef TABLEFLUSH
+  gettimeofday(&start, NULL);
+#endif
+
   WriteBlock(&r->data_block, &r->pending_handle);
+
+#ifdef TABLEFLUSH
+  gettimeofday(&end, NULL);
+  writeblock = timeval_diff(&start, &end);
+  gettimeofday(&start, NULL);
+#endif
+
   if (ok()) {
     r->pending_index_entry = true;
     r->status = r->file->Flush();
   }
+#ifdef TABLEFLUSH
+  gettimeofday(&end, NULL);
+  fileflush = timeval_diff(&start, &end);
+
+  gettimeofday(&start, NULL);
+#endif
   if (r->filter_block != NULL) {
     r->filter_block->StartBlock(r->offset);
   }
+#ifdef TABLEFLUSH
+  gettimeofday(&end, NULL);
+  filterblockstart = timeval_diff(&start, &end);
+
+  std::cout << " writeblock " << writeblock << " fileflush "
+            << fileflush << " filterblockstart " << filterblockstart << std::endl;
+#endif
 }
 
 void TableBuilder::WriteBlock(BlockBuilder* block, BlockHandle* handle) {
+#ifdef WRITEBLOCK
+  struct timeval start, end;
+  double prepare = 0;
+  double compress = 0;
+  double writerawblock = 0;
   // File format contains a sequence of blocks where each block has:
   //    block_data: uint8[n]
   //    type: uint8
   //    crc: uint32
+  gettimeofday(&start, NULL);
+#endif
   assert(ok());
   Rep* r = rep_;
   Slice raw = block->Finish();
 
+
   Slice block_contents;
   CompressionType type = r->options.compression;
+#ifdef WRITEBLOCK
+  gettimeofday(&end, NULL);
+  prepare = timeval_diff(&start, &end);
+
   // TODO(postrelease): Support more compression options: zlib?
+  gettimeofday(&start, NULL);
+#endif
   switch (type) {
     case kNoCompression:
       block_contents = raw;
@@ -203,18 +247,43 @@ void TableBuilder::WriteBlock(BlockBuilder* block, BlockHandle* handle) {
       break;
     }
   }
+#ifdef WRITEBLOCK
+  gettimeofday(&end, NULL);
+  compress = timeval_diff(&start, &end);
+
+  gettimeofday(&start, NULL);
+#endif
   WriteRawBlock(block_contents, type, handle);
   r->compressed_output.clear();
   block->Reset();
+#ifdef WRITEBLOCK
+  gettimeofday(&end, NULL);
+  writerawblock = timeval_diff(&start, &end);
+
+  std::cout << "prepare " << prepare << " compress " << compress << " writerawblock " << writerawblock << std::endl;
+#endif
 }
 
 void TableBuilder::WriteRawBlock(const Slice& block_contents,
                                  CompressionType type,
-                                 BlockHandle* handle) {
+#ifdef WRITERAWBLOCK                                BlockHandle* handle) {
+  struct timeval start, end;
+  double fileappend = 0;
+  double crc = 0;
+
+  gettimeofday(&start, NULL);
+#endif
   Rep* r = rep_;
   handle->set_offset(r->offset);
   handle->set_size(block_contents.size());
   r->status = r->file->Append(block_contents); // 将压缩后的内容append到文件中
+#ifdef WRITERAWBLOCK
+  gettimeofday(&end, NULL);
+  fileappend = timeval_diff(&start, &end);
+
+  gettimeofday(&start, NULL);
+#endif
+
   if (r->status.ok()) {  // 添加校验码:1) 生成校验码; 2) 将校验码append到文件中
     char trailer[kBlockTrailerSize];
     trailer[0] = type;
@@ -226,6 +295,12 @@ void TableBuilder::WriteRawBlock(const Slice& block_contents,
       r->offset += block_contents.size() + kBlockTrailerSize;
     }
   }
+#ifdef WRITERAWBLOCK
+  gettimeofday(&end, NULL);
+  crc = timeval_diff(&start, &end);
+
+  std::cout << "fileappend " << fileappend << " crc " << crc << std::endl;
+#endif
 }
 
 Status TableBuilder::status() const {
