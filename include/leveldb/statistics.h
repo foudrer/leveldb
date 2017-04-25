@@ -23,7 +23,8 @@ inline double timespec_diff(const struct timespec *start, const struct timespec 
     else
         r -= (start->tv_nsec - end->tv_nsec);
 
-    return (double)(r / 1000000000);
+    // return (double)(r / 1000000000);
+    return r;
 }
 
 /* How to use:
@@ -46,7 +47,8 @@ inline double timeval_diff(const struct timeval *start, const struct timeval *en
     else if (end->tv_usec < start->tv_usec)
         r -= (start->tv_usec - end->tv_usec);
 
-    return (double)(r / 1000000);
+    // return (double)(r / 1000000);
+    return r;
 }
 
 
