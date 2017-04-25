@@ -266,7 +266,8 @@ void TableBuilder::WriteBlock(BlockBuilder* block, BlockHandle* handle) {
 
 void TableBuilder::WriteRawBlock(const Slice& block_contents,
                                  CompressionType type,
-#ifdef WRITERAWBLOCK                                BlockHandle* handle) {
+                                 BlockHandle* handle) {
+#ifdef WRITERAWBLOCK
   struct timeval start, end;
   double fileappend = 0;
   double crc = 0;
