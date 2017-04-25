@@ -3,6 +3,7 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "leveldb/table.h"
+#include "leveldb/statistics.h"
 
 #include "leveldb/cache.h"
 #include "leveldb/comparator.h"
@@ -164,6 +165,14 @@ static void ReleaseBlock(void* arg, void* h) {
 Iterator* Table::BlockReader(void* arg,
                              const ReadOptions& options,
                              const Slice& index_value) {
+#ifdef BLOCKREADER
+  struct timeval start, end;
+  double cachelookup = 0;
+  double cachevalue = 0;
+  double cachereadblock = 0;
+  double cacheinsert = 0;
+  double nocachereadblock = 0;
+#endif
   Table* table = reinterpret_cast<Table*>(arg);
   Cache* block_cache = table->rep_->options.block_cache;
   Block* block = NULL;
@@ -178,28 +187,63 @@ Iterator* Table::BlockReader(void* arg,
   if (s.ok()) {
     BlockContents contents;
     if (block_cache != NULL) {
+#ifdef BLOCKREADER
+      gettimeofday(&start, NULL);
+#endif
       char cache_key_buffer[16];
       EncodeFixed64(cache_key_buffer, table->rep_->cache_id);
       EncodeFixed64(cache_key_buffer+8, handle.offset());
       Slice key(cache_key_buffer, sizeof(cache_key_buffer));
       cache_handle = block_cache->Lookup(key);
+#ifdef BLOCKREADER
+      gettimeofday(&end, NULL);
+      cachelookup = timeval_diff(&start, &end);
+#endif
       if (cache_handle != NULL) {
+#ifdef BLOCKREADER
+        gettimeofday(&start, NULL);
+#endif
         block = reinterpret_cast<Block*>(block_cache->Value(cache_handle));
+#ifdef BLOCKREADER
+        gettimeofday(&end, NULL);
+        cachevalue = timeval_diff(&start, &end);
+#endif
       } else {
+#ifdef BLOCKREADER
+        gettimeofday(&start, NULL);
+#endif
         s = ReadBlock(table->rep_->file, options, handle, &contents);
+#ifdef BLOCKREADER
+        gettimeofday(&end, NULL);
+        cachereadblock = timeval_diff(&start, &end);
+#endif
         if (s.ok()) {
+#ifdef BLOCKREADER
+          gettimeofday(&start, NULL);
+#endif
           block = new Block(contents);
           if (contents.cachable && options.fill_cache) {
             cache_handle = block_cache->Insert(
                 key, block, block->size(), &DeleteCachedBlock);
           }
+#ifdef BLOCKREADER
+          gettimeofday(&end, NULL);
+          cacheinsert = timeval_diff(&start, &end);
+#endif
         }
       }
     } else {
+#ifdef BLOCKREADER
+      gettimeofday(&start, NULL);
+#endif
       s = ReadBlock(table->rep_->file, options, handle, &contents);
       if (s.ok()) {
         block = new Block(contents);
       }
+#ifdef BLOCKREADER
+      gettimeofday(&end, NULL);
+      nocachereadblock = timeval_diff(&start, &end);
+#endif
     }
   }
 
@@ -214,6 +258,12 @@ Iterator* Table::BlockReader(void* arg,
   } else {
     iter = NewErrorIterator(s);
   }
+
+#ifdef BLOCKREADER
+  std::cout << "cachelookup " << cachelookup << " cachevalue " << cachevalue
+            << " cachereadblock " << cachereadblock << " cacheinsert " << cacheinsert
+            << " nocachereadblock " << nocachereadblock << std::endl;
+#endif
   return iter;
 }
 
@@ -226,9 +276,21 @@ Iterator* Table::NewIterator(const ReadOptions& options) const {
 Status Table::InternalGet(const ReadOptions& options, const Slice& k,
                           void* arg,
                           void (*saver)(void*, const Slice&, const Slice&)) {
+#ifdef INTERNALGET
+  struct timeval start, end;
+  double seek = 0;
+  double blockread = 0;
+  double blockseek = 0;
+  gettimeofday(&start, NULL);
+#endif
   Status s;
   Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
   iiter->Seek(k);
+#ifdef INTERNALGET
+  gettimeofday(&end, NULL);
+  seek = timeval_diff(&start, &end);
+#endif
+
   if (iiter->Valid()) {
     Slice handle_value = iiter->value();
     FilterBlockReader* filter = rep_->filter;
@@ -238,11 +300,25 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k,
         !filter->KeyMayMatch(handle.offset(), k)) {
       // Not found
     } else {
+#ifdef INTERNALGET
+      gettimeofday(&start, NULL);
+#endif
       Iterator* block_iter = BlockReader(this, options, iiter->value());
+#ifdef INTERNALGET
+      gettimeofday(&end, NULL);
+      blockread = timeval_diff(&start, &end);
+
+      gettimeofday(&start, NULL);
+#endif
       block_iter->Seek(k);
       if (block_iter->Valid()) {
         (*saver)(arg, block_iter->key(), block_iter->value());
       }
+#ifdef INTERNALGET
+      gettimeofday(&end, NULL);
+      blockseek = timeval_diff(&start, &end);
+#endif
+
       s = block_iter->status();
       delete block_iter;
     }
@@ -251,6 +327,8 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k,
     s = iiter->status();
   }
   delete iiter;
+
+  std::cout << "seek " << seek << " blockread " << blockread << " blockseek " << blockseek << std::endl;
   return s;
 }
 

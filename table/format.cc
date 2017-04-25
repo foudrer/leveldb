@@ -5,6 +5,7 @@
 #include "table/format.h"
 
 #include "leveldb/env.h"
+#include "leveldb/statistics.h"
 #include "port/port.h"
 #include "table/block.h"
 #include "util/coding.h"
@@ -66,6 +67,13 @@ Status ReadBlock(RandomAccessFile* file,
                  const ReadOptions& options,
                  const BlockHandle& handle,
                  BlockContents* result) {
+#ifdef READBLOCK
+  struct timeval start, end;
+  double fileread = 0;
+  double filecrc = 0;
+  double uncompress = 0;
+  gettimeofday(&start, NULL);
+#endif
   result->data = Slice();
   result->cachable = false;
   result->heap_allocated = false;
@@ -76,6 +84,10 @@ Status ReadBlock(RandomAccessFile* file,
   char* buf = new char[n + kBlockTrailerSize];
   Slice contents;
   Status s = file->Read(handle.offset(), n + kBlockTrailerSize, &contents, buf);
+#ifdef READBLOCK
+  gettimeofday(&end, NULL);
+  fileread = timeval_diff(&start, &end);
+#endif
   if (!s.ok()) {
     delete[] buf;
     return s;
@@ -86,6 +98,9 @@ Status ReadBlock(RandomAccessFile* file,
   }
 
   // Check the crc of the type and the block contents
+#ifdef READBLOCK
+  gettimeofday(&start, NULL);
+#endif
   const char* data = contents.data();    // Pointer to where Read put the data
   if (options.verify_checksums) {   // 校验码验证
     const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
@@ -96,7 +111,12 @@ Status ReadBlock(RandomAccessFile* file,
       return s;
     }
   }
+#ifdef READBLOCK
+  gettimeofday(&end, NULL);
+  filecrc = timeval_diff(&start, &end);
 
+  gettimeofday(&start, NULL);
+#endif
   switch (data[n]) {
     case kNoCompression:
       if (data != buf) {
@@ -138,7 +158,12 @@ Status ReadBlock(RandomAccessFile* file,
       delete[] buf;
       return Status::Corruption("bad block type");
   }
+#ifdef READBLOCK
+  gettimeofday(&end, NULL);
+  uncompress = timeval_diff(&start, &end);
 
+  std::cout << "fileread " << fileread << " filecrc " << filecrc << " uncompress " << uncompress << std::endl;
+#endif
   return Status::OK();
 }
 

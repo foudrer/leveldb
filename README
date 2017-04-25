@@ -8,3 +8,8 @@ macro definition
 
 SSTable Read Analysis
 macro definition
+1. VERSIONGET
+2. TABLECACHEGET
+3. INTERNALGET
+4. BLOCKREADER
+5. READBLOCK

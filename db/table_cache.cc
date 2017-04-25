@@ -7,6 +7,7 @@
 #include "db/filename.h"
 #include "leveldb/env.h"
 #include "leveldb/table.h"
+#include "leveldb/statistics.h"
 #include "util/coding.h"
 
 namespace leveldb {
@@ -108,13 +109,33 @@ Status TableCache::Get(const ReadOptions& options,
                        const Slice& k,
                        void* arg,
                        void (*saver)(void*, const Slice&, const Slice&)) {
+#ifdef TABLECACHEGET
+  struct timeval start, end;
+  double findtable = 0;
+  double internalget = 0;
+  gettimeofday(&start, NULL);
+#endif
   Cache::Handle* handle = NULL;
   Status s = FindTable(file_number, file_size, &handle);
+#ifdef TABLECACHEGET
+  gettimeofday(&end, NULL);
+  findtable = timeval_diff(&start, &end);
+
+  gettimeofday(&start, NULL);
+#endif
   if (s.ok()) {
     Table* t = reinterpret_cast<TableAndFile*>(cache_->Value(handle))->table;
     s = t->InternalGet(options, k, arg, saver);
     cache_->Release(handle);
   }
+
+#ifdef TABLECACHEGET
+  gettimeofday(&end, NULL);
+  internalget = timeval_diff(&start, &end);
+
+  std::cout << "findtable " << findtable << " internalget " << internalget << std::endl;
+#endif
+
   return s;
 }
 

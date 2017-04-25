@@ -13,6 +13,7 @@
 #include "db/table_cache.h"
 #include "leveldb/env.h"
 #include "leveldb/table_builder.h"
+#include "leveldb/statistics.h"
 #include "table/merger.h"
 #include "table/two_level_iterator.h"
 #include "util/coding.h"
@@ -333,6 +334,11 @@ Status Version::Get(const ReadOptions& options,
                     const LookupKey& k,
                     std::string* value,
                     GetStats* stats) {
+#ifdef VERSIONGET
+  struct timeval start, end;
+  double searchfile = 0;
+  double getvalue = 0;
+#endif
   Slice ikey = k.internal_key();
   Slice user_key = k.user_key();
   const Comparator* ucmp = vset_->icmp_.user_comparator();
@@ -349,6 +355,10 @@ Status Version::Get(const ReadOptions& options,
   std::vector<FileMetaData*> tmp;
   FileMetaData* tmp2;
   for (int level = 0; level < config::kNumLevels; level++) {
+
+#ifdef VERSIONGET
+    gettimeofday(&start, NULL);
+#endif
     size_t num_files = files_[level].size();
     if (num_files == 0) continue;
 
@@ -388,7 +398,10 @@ Status Version::Get(const ReadOptions& options,
         }
       }
     }
-
+#ifdef VERSIONGET
+    gettimeofday(&end, NULL);
+    searchfile += timeval_diff(&start, &end);
+#endif
     for (uint32_t i = 0; i < num_files; ++i) {
       if (last_file_read != NULL && stats->seek_file == NULL) {
         // We have had more than one seek for this read.  Charge the 1st file.
@@ -405,8 +418,16 @@ Status Version::Get(const ReadOptions& options,
       saver.ucmp = ucmp;
       saver.user_key = user_key;
       saver.value = value;
+#ifdef VERSIONGET
+      gettimeofday(&start, NULL);
+#endif
       s = vset_->table_cache_->Get(options, f->number, f->file_size,
                                    ikey, &saver, SaveValue);
+#ifdef VERSIONGET
+      gettimeofday(&end, NULL);
+      getvalue += timeval_diff(&start, &end);
+#endif
+
       if (!s.ok()) {
         return s;
       }
@@ -414,17 +435,28 @@ Status Version::Get(const ReadOptions& options,
         case kNotFound:
           break;      // Keep searching in other files
         case kFound:
+#ifdef VERSIONGET
+          std::cout << "searchfile " << searchfile << " getvalue " << getvalue << std::endl;
+#endif
           return s;
         case kDeleted:
           s = Status::NotFound(Slice());  // Use empty error message for speed
+#ifdef VERSIONGET
+          std::cout << "searchfile " << searchfile << " getvalue " << getvalue << std::endl;
+#endif
           return s;
         case kCorrupt:
           s = Status::Corruption("corrupted key for ", user_key);
+#ifdef VERSIONGET
+          std::cout << "searchfile " << searchfile << " getvalue " << getvalue << std::endl;
+#endif
           return s;
       }
     }
   }
-
+#ifdef VERSIONGET
+  std::cout << "searchfile " << searchfile << " getvalue " << getvalue << std::endl;
+#endif
   return Status::NotFound(Slice());  // Use an empty error message for speed
 }
 
