@@ -8,3 +8,5 @@ build_config.mk
 db_bench
 leveldbutil
 .idea
+.idea/workspace.xml
+
