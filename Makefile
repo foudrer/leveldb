@@ -22,7 +22,6 @@ include build_config.mk
 
 TESTS = \
 	db/autocompact_test \
-	db/c_test \
 	db/corruption_test \
 	db/db_test \
 	db/dbformat_test \
@@ -316,9 +315,6 @@ $(STATIC_OUTDIR)/autocompact_test:db/autocompact_test.cc $(STATIC_LIBOBJECTS) $(
 
 $(STATIC_OUTDIR)/bloom_test:util/bloom_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(CXXFLAGS) util/bloom_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
-
-$(STATIC_OUTDIR)/c_test:$(STATIC_OUTDIR)/db/c_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/c_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
 $(STATIC_OUTDIR)/cache_test:util/cache_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(CXXFLAGS) util/cache_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
