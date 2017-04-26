@@ -980,7 +980,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         (int)last_sequence_for_key, (int)compact->smallest_snapshot);
 #endif
 
-    if (!drop) {
+    if (!drop) {  // 保留该key/value
       // Open output file if necessary
       if (compact->builder == NULL) {
         status = OpenCompactionOutputFile(compact);
@@ -1003,6 +1003,13 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         }
       }
     }
+    /*
+     * else {  // drop == true  该key/value需要删除
+     *  obtain seqnumber from key
+     *  bdb->delete(seqnumber);
+     * }
+     */
+    *
 
     input->Next();
   }

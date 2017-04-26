@@ -240,6 +240,10 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k,
     } else {
       Iterator* block_iter = BlockReader(this, options, iiter->value());
       block_iter->Seek(k);
+      /*
+       * obtain seqnumber from block_iter->key()
+       * bdb->get(seqnumber, &value)
+       */
       if (block_iter->Valid()) {
         (*saver)(arg, block_iter->key(), block_iter->value());
       }

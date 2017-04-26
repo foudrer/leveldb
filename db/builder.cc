@@ -45,6 +45,10 @@ Status BuildTable(const std::string& dbname,
       std::cout << "seqnumbervaluetype " << ExtractSequenceNumberandValueType(key) << std::endl;
       std::cout << "seqnumber " << ExtractSequenceNumber(key) << std::endl;
       std::cout << "valueType " << ExtractValueType(key) << std::endl;
+      /*
+       * seqnumber  number ==> string
+       * bdb->insert(seqnumber, value);
+       */
     }
 
     // Finish and check for builder errors
