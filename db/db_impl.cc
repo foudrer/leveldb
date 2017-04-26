@@ -1009,7 +1009,6 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
      *  bdb->delete(seqnumber);
      * }
      */
-    *
 
     input->Next();
   }

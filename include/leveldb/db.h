@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include "leveldb/iterator.h"
 #include "leveldb/options.h"
+#include "bdb/db_cxx.h"
 
 namespace leveldb {
 
@@ -37,6 +38,7 @@ struct Range {
   Range() { }
   Range(const Slice& s, const Slice& l) : start(s), limit(l) { }
 };
+
 
 // A DB is a persistent ordered map from keys to values.
 // A DB is safe for concurrent access from multiple threads without
