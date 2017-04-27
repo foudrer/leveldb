@@ -45,11 +45,23 @@ TableCache::~TableCache() {
 
 Status TableCache::FindTable(uint64_t file_number, uint64_t file_size,
                              Cache::Handle** handle) {
+#ifdef FINDTABLE
+  struct timeval start, end;
+  double cachelookup = 0;
+  double cachefail = 0;
+  gettimeofday(&start, NULL);
+#endif
   Status s;
   char buf[sizeof(file_number)];
   EncodeFixed64(buf, file_number);
   Slice key(buf, sizeof(buf));
   *handle = cache_->Lookup(key);
+#ifdef FINDTABLE
+  gettimeofday(&end, NULL);
+  cachelookup = timeval_diff(&start, &end);
+
+  gettimeofday(&start, NULL);
+#endif
   if (*handle == NULL) {
     std::string fname = TableFileName(dbname_, file_number);
     RandomAccessFile* file = NULL;
@@ -77,6 +89,12 @@ Status TableCache::FindTable(uint64_t file_number, uint64_t file_size,
       *handle = cache_->Insert(key, tf, 1, &DeleteEntry);
     }
   }
+#ifdef FINDTABLE
+  gettimeofday(&end, NULL);
+  cachefail = timeval_diff(&start, &end);
+
+  std::cout << "cachelookup " << cachelookup << " cachefail " << cachefail << std::endl;
+#endif
   return s;
 }
 
