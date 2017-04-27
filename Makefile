@@ -62,8 +62,8 @@ BENCHMARKS = \
 CFLAGS += -I. -I./include $(PLATFORM_CCFLAGS) $(OPT)
 CXXFLAGS += -I. -I./include $(PLATFORM_CXXFLAGS) $(OPT)
 
-LDFLAGS += $(PLATFORM_LDFLAGS)
-LIBS += $(PLATFORM_LIBS)
+LDFLAGS += $(PLATFORM_LDFLAGS)  
+LIBS += $(PLATFORM_LIBS) -L/usr/local/BerkeleyDB.6.2/lib -ldb_cxx
 
 SIMULATOR_OUTDIR=out-ios-x86
 DEVICE_OUTDIR=out-ios-arm
