@@ -159,9 +159,12 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
 void TableBuilder::Flush() {
 #ifdef TABLEFLUSH
   struct timeval start, end;
+  double prepare = 0;
   double writeblock = 0;
   double fileflush = 0;
   double filterblockstart = 0;
+
+  gettimeofday(&start, NULL);
 #endif
   Rep* r = rep_;
   assert(!r->closed);
@@ -169,6 +172,9 @@ void TableBuilder::Flush() {
   if (r->data_block.empty()) return;
   assert(!r->pending_index_entry);
 #ifdef TABLEFLUSH
+  gettimeofday(&end, NULL);
+  prepare = timeval_diff(&start, &end);
+
   gettimeofday(&start, NULL);
 #endif
 
@@ -177,6 +183,7 @@ void TableBuilder::Flush() {
 #ifdef TABLEFLUSH
   gettimeofday(&end, NULL);
   writeblock = timeval_diff(&start, &end);
+
   gettimeofday(&start, NULL);
 #endif
 
@@ -197,7 +204,7 @@ void TableBuilder::Flush() {
   gettimeofday(&end, NULL);
   filterblockstart = timeval_diff(&start, &end);
 
-  std::cout << " writeblock " << writeblock << " fileflush "
+  std::cout << "prepare " << prepare << " writeblock " << writeblock << " fileflush "
             << fileflush << " filterblockstart " << filterblockstart << std::endl;
 #endif
 }
