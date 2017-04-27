@@ -123,6 +123,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       owns_info_log_(options_.info_log != raw_options.info_log),
       owns_cache_(options_.block_cache != raw_options.block_cache),
       dbname_(dbname),
+      bdbname_(dbname + "/lsm.db"),
       db_lock_(NULL),
       shutting_down_(NULL),
       bg_cv_(&mutex_),
@@ -500,7 +501,7 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
   Status s;
   {
     mutex_.Unlock();
-    s = BuildTable(dbname_, env_, options_, table_cache_, iter, &meta);
+    s = BuildTable(dbname_, env_, options_, table_cache_, iter, &meta, bdb_);
     mutex_.Lock();
   }
 
@@ -1528,6 +1529,11 @@ Status DB::Open(const Options& options, const std::string& dbname,
     impl->DeleteObsoleteFiles();
     impl->MaybeScheduleCompaction();
   }
+
+  if (impl->bdb_->open(NULL, impl->bdbname_.c_str(), NULL, DB_BTREE, DB_CREATE, 0644) != 0) {
+    s = Status::Corruption("BDB can not open");
+  }
+
   impl->mutex_.Unlock();
   if (s.ok()) {
     assert(impl->mem_ != NULL);

@@ -120,6 +120,7 @@ class DBImpl : public DB {
 
   // bdb handler
   Db* bdb_;
+  const std::string bdbname_;
 
   // Constant after construction
   Env* const env_;

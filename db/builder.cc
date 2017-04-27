@@ -20,7 +20,8 @@ Status BuildTable(const std::string& dbname,
                   const Options& options,
                   TableCache* table_cache,
                   Iterator* iter,
-                  FileMetaData* meta) {
+                  FileMetaData* meta,
+                  Db* bdb) {
   Status s;
   meta->file_size = 0;
   iter->SeekToFirst();
@@ -35,20 +36,28 @@ Status BuildTable(const std::string& dbname,
 
     TableBuilder* builder = new TableBuilder(options, file);
     meta->smallest.DecodeFrom(iter->key());
-    for (; iter->Valid(); iter->Next()) {
-      Slice key = iter->key();
-      meta->largest.DecodeFrom(key);
-      // builder->Add(key, iter->value());
-      builder->Add(key, Slice());
-      std::cout << meta->largest.DebugString() << std::endl;
-      std::cout << "usekey " << ExtractUserKey(key).ToString() << std::endl;
-      std::cout << "seqnumbervaluetype " << ExtractSequenceNumberandValueType(key) << std::endl;
-      std::cout << "seqnumber " << ExtractSequenceNumber(key) << std::endl;
-      std::cout << "valueType " << ExtractValueType(key) << std::endl;
-      /*
-       * seqnumber  number ==> string
-       * bdb->insert(seqnumber, value);
-       */
+    if (bdb == NULL) {
+      for (; iter->Valid(); iter->Next()) {
+        Slice key = iter->key();
+        meta->largest.DecodeFrom(key);
+        builder->Add(key, iter->value());
+      }
+    } else {
+      for (; iter->Valid(); iter->Next()) {
+        Slice key = iter->key();
+        meta->largest.DecodeFrom(key);
+        builder->Add(key, Slice());
+
+        // bdb insert
+        Slice bdbkey = ExtractSequenceNumandValueTypeforString(key);
+        Slice bdbvalue = iter->value();
+        Dbt* bdb_key = new Dbt(const_cast<char*>(bdbkey.data()), bdbkey.size());
+        Dbt* bdb_value = new Dbt(const_cast<char*>(bdbvalue.data()), bdbvalue.size());
+        if (bdb->put(NULL, bdb_key, bdb_value, 0) != 0) {
+          s = Status::Corruption("BDB put failure");
+          break;
+        }
+      }
     }
 
     // Finish and check for builder errors
