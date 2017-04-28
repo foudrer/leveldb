@@ -47,7 +47,8 @@ Status BuildTable(const std::string& dbname,
         Slice key = iter->key();
         meta->largest.DecodeFrom(key);
         builder->Add(key, Slice());
-        std::cout << ExtractUserKey(key) << " " << ExtractSequenceNumber(key) << " " << ExtractValueType(key) << std::endl;
+        std::cout << ExtractUserKey(key).ToString() << " " <<
+                  ExtractSequenceNumber(key) << " " << ExtractValueType(key) << std::endl;
         // bdb insert
         Slice bdbkey = ExtractSequenceNumandValueTypeforString(key);
         Slice bdbvalue = iter->value();
