@@ -1504,7 +1504,14 @@ Status DB::Open(const Options& options, const std::string& dbname,
   VersionEdit edit;
   // Recover handles create_if_missing, error_if_exists
   bool save_manifest = false;
-  Status s = impl->Recover(&edit, &save_manifest);
+  Status s;
+  if (impl->bdb_->open(NULL, impl->bdbname_.c_str(), NULL, DB_BTREE, DB_CREATE, 0644) != 0) {
+    s = Status::Corruption("BDB can not open");
+  }
+
+  if (s.ok())
+    s = impl->Recover(&edit, &save_manifest);
+
   if (s.ok() && impl->mem_ == NULL) {
     // Create new log and a corresponding memtable.
     uint64_t new_log_number = impl->versions_->NewFileNumber();
@@ -1528,10 +1535,6 @@ Status DB::Open(const Options& options, const std::string& dbname,
   if (s.ok()) {
     impl->DeleteObsoleteFiles();
     impl->MaybeScheduleCompaction();
-  }
-
-  if (impl->bdb_->open(NULL, impl->bdbname_.c_str(), NULL, DB_BTREE, DB_CREATE, 0644) != 0) {
-    s = Status::Corruption("BDB can not open");
   }
 
   impl->mutex_.Unlock();
