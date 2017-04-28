@@ -50,7 +50,8 @@ Status BuildTable(const std::string& dbname,
         std::cout << key.ToString() << " "
                   << ExtractUserKey(key).ToString() << " "
                   << ExtractSequenceNumber(key) << " "
-                  << ExtractValueType(key) << std::endl;
+                  << ExtractValueType(key) << " "
+                  << ExtractSequenceNumandValueTypeforNumber(key) << std::endl;
         // bdb insert
         Slice bdbkey = ExtractSequenceNumandValueTypeforString(key);
         Slice bdbvalue = iter->value();
