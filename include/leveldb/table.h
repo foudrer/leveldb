@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include "leveldb/iterator.h"
+#include "bdb/db_cxx.h"
 
 namespace leveldb {
 
@@ -69,7 +70,8 @@ class Table {
   Status InternalGet(
       const ReadOptions&, const Slice& key,
       void* arg,
-      void (*handle_result)(void* arg, const Slice& k, const Slice& v));
+      void (*handle_result)(void* arg, const Slice& k, const Slice& v),
+      Db* bdb);
 
 
   void ReadMeta(const Footer& footer);

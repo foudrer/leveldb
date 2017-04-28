@@ -1009,6 +1009,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       Dbt* bdb_key = new Dbt(const_cast<char*>(bdbkey.data()), bdbkey.size());
       if (bdb_->del(NULL, bdb_key, 0) != 0) {
         status = Status::Corruption("BDB del failure");
+        break;
       }
     }
     input->Next();
@@ -1145,7 +1146,7 @@ Status DBImpl::Get(const ReadOptions& options,
     } else if (imm != NULL && imm->Get(lkey, value, &s)) {
       // Done
     } else {
-      s = current->Get(options, lkey, value, &stats);
+      s = current->Get(options, lkey, value, &stats, bdb_);
       have_stat_update = true;
     }
     mutex_.Lock();

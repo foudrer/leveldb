@@ -14,6 +14,8 @@
 #include "table/format.h"
 #include "table/two_level_iterator.h"
 #include "util/coding.h"
+#include "db/dbformat.h"
+#include "bdb/db_cxx.h"
 
 namespace leveldb {
 
@@ -225,7 +227,8 @@ Iterator* Table::NewIterator(const ReadOptions& options) const {
 
 Status Table::InternalGet(const ReadOptions& options, const Slice& k,
                           void* arg,
-                          void (*saver)(void*, const Slice&, const Slice&)) {
+                          void (*saver)(void*, const Slice&, const Slice&),
+                          Db* bdb) {
   Status s;
   Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
   iiter->Seek(k);
@@ -240,12 +243,16 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k,
     } else {
       Iterator* block_iter = BlockReader(this, options, iiter->value());
       block_iter->Seek(k);
-      /*
-       * obtain seqnumber from block_iter->key()
-       * bdb->get(seqnumber, &value)
-       */
+
       if (block_iter->Valid()) {
-        (*saver)(arg, block_iter->key(), block_iter->value());
+        Slice bdbkey = ExtractSequenceNumandValueTypeforString(block_iter->key());
+        Dbt* bdb_key = new Dbt(const_cast<char*>(bdbkey.data()), bdbkey.size());
+        Dbt* bdb_value = new Dbt();
+        bdb_value->set_flags(DB_DBT_MALLOC);
+        if (bdb->get(NULL, bdb_key, bdb_value, 0) == 0) {
+          Slice value = Slice((char *)(bdb_value->get_data()));
+          (*saver)(arg, block_iter->key(), value);
+        }
       }
       s = block_iter->status();
       delete block_iter;

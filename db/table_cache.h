@@ -13,6 +13,7 @@
 #include "leveldb/cache.h"
 #include "leveldb/table.h"
 #include "port/port.h"
+#include "bdb/db_cxx.h"
 
 namespace leveldb {
 
@@ -42,7 +43,8 @@ class TableCache {
              uint64_t file_size,
              const Slice& k,
              void* arg,
-             void (*handle_result)(void*, const Slice&, const Slice&));
+             void (*handle_result)(void*, const Slice&, const Slice&),
+             Db* bdb);
 
   // Evict any entry for the specified file number
   void Evict(uint64_t file_number);
