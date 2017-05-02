@@ -48,7 +48,9 @@ Status TableCache::FindTable(uint64_t file_number, uint64_t file_size,
 #ifdef FINDTABLE
   struct timeval start, end;
   double cachelookup = 0;
-  double cachefail = 0;
+  double cachefailnewfile = 0;
+  double cachefailopen = 0;
+  double cachefailinsert = 0;
   gettimeofday(&start, NULL);
 #endif
   Status s;
@@ -60,9 +62,11 @@ Status TableCache::FindTable(uint64_t file_number, uint64_t file_size,
   gettimeofday(&end, NULL);
   cachelookup = timeval_diff(&start, &end);
 
-  gettimeofday(&start, NULL);
 #endif
   if (*handle == NULL) {
+    #ifdef FINDTABLE
+    gettimeofday(&start, NULL);
+    #endif
     std::string fname = TableFileName(dbname_, file_number);
     RandomAccessFile* file = NULL;
     Table* table = NULL;
@@ -73,10 +77,21 @@ Status TableCache::FindTable(uint64_t file_number, uint64_t file_size,
         s = Status::OK();
       }
     }
+    #ifdef FINDTABLE
+    gettimeofday(&end, NULL);
+    cachefailnewfile += timeval_diff(&start, &end);
+
+    gettimeofday(&start, NULL);
+    #endif
     if (s.ok()) {
       s = Table::Open(*options_, file, file_size, &table);
     }
+    #ifdef FINDTABLE
+    gettimeofday(&end, NULL);
+    cachefailopen += timeval_diff(&start, &end);
 
+    gettimeofday(&start, NULL);
+    #endif
     if (!s.ok()) {
       assert(table == NULL);
       delete file;
@@ -88,12 +103,20 @@ Status TableCache::FindTable(uint64_t file_number, uint64_t file_size,
       tf->table = table;
       *handle = cache_->Insert(key, tf, 1, &DeleteEntry);
     }
+    #ifdef FINDTABLE
+    gettimeofday(&end, NULL);
+    cachefailinsert += timeval_diff(&start, &end);
+    #endif
   }
 #ifdef FINDTABLE
   gettimeofday(&end, NULL);
   cachefail = timeval_diff(&start, &end);
 
-  std::cout << "cachelookup " << cachelookup << " cachefail " << cachefail << std::endl;
+  std::cout << "cachelookup " << cachelookup
+            << " cachefailnewfile " << cachefailnewfile
+            << " cachefailopen " << cachefailopen
+            << " cachefailinsert " << cachefailinsert
+            << std::endl;
 #endif
   return s;
 }
