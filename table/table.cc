@@ -17,6 +17,8 @@
 #include "db/dbformat.h"
 #include "bdb/db_cxx.h"
 
+#include <iostream>
+
 namespace leveldb {
 
 struct Table::Rep {
@@ -250,8 +252,11 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k,
         Dbt* bdb_value = new Dbt();
         bdb_value->set_flags(DB_DBT_MALLOC);
         if (bdb->get(NULL, bdb_key, bdb_value, 0) == 0) {
+          std::cout << "bdb find value" << std::endl;
           Slice value = Slice((char *)(bdb_value->get_data()));
           (*saver)(arg, block_iter->key(), value);
+        } else {
+          std::cout << "bdb not find value" << std::endl;
         }
       }
       s = block_iter->status();
