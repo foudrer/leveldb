@@ -109,9 +109,6 @@ Status TableCache::FindTable(uint64_t file_number, uint64_t file_size,
     #endif
   }
 #ifdef FINDTABLE
-  gettimeofday(&end, NULL);
-  cachefail = timeval_diff(&start, &end);
-
   std::cout << "cachelookup " << cachelookup
             << " cachefailnewfile " << cachefailnewfile
             << " cachefailopen " << cachefailopen
