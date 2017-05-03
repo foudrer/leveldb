@@ -146,9 +146,6 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
   versions_ = new VersionSet(dbname_, &options_, table_cache_,
                              &internal_comparator_);
   bdb_ = new Db(NULL, 0);
-  if (bdb_->open(NULL, bdbname_.c_str(), NULL, DB_BTREE, DB_CREATE, 0644) != 0) {
-    std::cout << "bdb open error" << std::endl;
-  }
 }
 
 DBImpl::~DBImpl() {
@@ -1511,6 +1508,9 @@ Status DB::Open(const Options& options, const std::string& dbname,
   bool save_manifest = false;
   Status s;
 
+  if (impl->bdb_->open(NULL, impl->bdbname_.c_str(), NULL, DB_BTREE, DB_CREATE, 0644) != 0) {
+    s = Status::Corruption("BDB Open error");
+  }
 
   if (s.ok())
     s = impl->Recover(&edit, &save_manifest);

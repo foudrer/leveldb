@@ -248,19 +248,20 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k,
 
       if (block_iter->Valid()) {
         SequenceNumber bdbkey = ExtractSequenceNumber(block_iter->key());
+        /*
           std::cout << "get " << ExtractUserKey(block_iter->key()).ToString() << " "
                     << ExtractSequenceNumber(block_iter->key()) << " "
                     << ExtractValueType(block_iter->key()) << std::endl;
-
+        */
         Dbt* bdb_key = new Dbt(&bdbkey, sizeof(bdbkey));
         Dbt* bdb_value = new Dbt();
         bdb_value->set_flags(DB_DBT_MALLOC);
         if (bdb->get(NULL, bdb_key, bdb_value, 0) == 0) {
-          std::cout << "bdb find it" << std::endl;
+         // std::cout << "bdb find it" << std::endl;
           Slice value = Slice((char *)(bdb_value->get_data()));
           (*saver)(arg, block_iter->key(), value);
         } else {
-          std::cout << "bdb not find it" << std::endl;
+         // std::cout << "bdb not find it" << std::endl;
         }
       }
       s = block_iter->status();
