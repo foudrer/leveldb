@@ -247,12 +247,12 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k,
       block_iter->Seek(k);
 
       if (block_iter->Valid()) {
-        Slice bdbkey = ExtractSequenceNumandValueTypeforString(block_iter->key());
+        SequenceNumber bdbkey = ExtractSequenceNumber(block_iter->key());
           std::cout << "get " << ExtractUserKey(block_iter->key()).ToString() << " "
                     << ExtractSequenceNumber(block_iter->key()) << " "
                     << ExtractValueType(block_iter->key()) << std::endl;
 
-        Dbt* bdb_key = new Dbt(const_cast<char*>(bdbkey.data()), bdbkey.size());
+        Dbt* bdb_key = new Dbt(&bdbkey, sizeof(bdbkey));
         Dbt* bdb_value = new Dbt();
         bdb_value->set_flags(DB_DBT_MALLOC);
         if (bdb->get(NULL, bdb_key, bdb_value, 0) == 0) {
