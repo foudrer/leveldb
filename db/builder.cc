@@ -55,10 +55,11 @@ Status BuildTable(const std::string& dbname,
                   << ExtractSequenceNumandValueTypeforNumber(key) << std::endl;
         */
         // bdb insert
-        SequenceNumber bdbkey = ExtractSequenceNumber(key);
+        // SequenceNumber bdbkey = ExtractSequenceNumber(key);
+        Slice bdbkey = ExtractSequenceNumandValueTypeforString(key);
         // std::cout << "insert " << ExtractUserKey(key).ToString() << " " << ExtractSequenceNumber(key) << " " << ExtractValueType(key) << std::endl;
         Slice bdbvalue = iter->value();
-        Dbt* bdb_key = new Dbt(&bdbkey, sizeof(bdbkey));
+        Dbt* bdb_key = new Dbt(const_cast<char *>(bdbkey.data()), bdbkey.size());
         Dbt* bdb_value = new Dbt(const_cast<char*>(bdbvalue.data()), bdbvalue.size());
         if (bdb->put(NULL, bdb_key, bdb_value, 0) != 0) {
           s = Status::Corruption("BDB put failure");
