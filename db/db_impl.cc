@@ -171,6 +171,7 @@ DBImpl::~DBImpl() {
   delete log_;
   delete logfile_;
   delete table_cache_;
+  delete bdb_;
 
   if (owns_info_log_) {
     delete options_.info_log;
