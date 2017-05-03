@@ -1007,8 +1007,8 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         }
       }
     } else {  // drop = true
-      Slice bdbkey = ExtractSequenceNumandValueTypeforString(key);
-      Dbt* bdb_key = new Dbt(const_cast<char*>(bdbkey.data()), bdbkey.size());
+      SequenceNumber bdbkey = ExtractSequenceNumber(key);
+      Dbt* bdb_key = new Dbt(&bdbkey, sizeof(bdbkey));
       if (bdb_->del(NULL, bdb_key, 0) != 0) {
         status = Status::Corruption("BDB del failure");
         break;
