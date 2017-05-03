@@ -3,6 +3,7 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include <sys/types.h>
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include "db/db_impl.h"
@@ -529,6 +530,7 @@ class Benchmark {
       }
 
       if (fresh_db) {
+	std::cout << "fresh_db true" << std::endl;
         if (FLAGS_use_existing_db) {
           fprintf(stdout, "%-12s : skipped (--use_existing_db is true)\n",
                   name.ToString().c_str());
@@ -539,6 +541,8 @@ class Benchmark {
           DestroyDB(FLAGS_db, Options());
           Open();
         }
+      } else {
+	std::cout << "fresh_db false" << std::endl;
       }
 
       if (method != NULL) {
@@ -772,16 +776,20 @@ class Benchmark {
   }
 
   void ReadSequential(ThreadState* thread) {
-    Iterator* iter = db_->NewIterator(ReadOptions());
-    int i = 0;
-    int64_t bytes = 0;
-    for (iter->SeekToFirst(); i < reads_ && iter->Valid(); iter->Next()) {
-      bytes += iter->key().size() + iter->value().size();
-      thread->stats.FinishedSingleOp();
-      ++i;
+    ReadOptions options;
+    int found = 0;
+    std::string value;
+    for (int i = 0; i < reads_; i++) {
+	    char key[100];
+	    snprintf(key, sizeof(key), "%016d", i);
+	    if (db_->Get(options, key, &value).ok()) {
+		    found++;
+	    }
+	    thread->stats.FinishedSingleOp();
     }
-    delete iter;
-    thread->stats.AddBytes(bytes);
+    char msg[100];
+    snprintf(msg, sizeof(msg), "(%d of %d found)", found, num_);
+    thread->stats.AddMessage(msg);	 
   }
 
   void ReadReverse(ThreadState* thread) {
