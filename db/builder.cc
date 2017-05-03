@@ -56,6 +56,7 @@ Status BuildTable(const std::string& dbname,
         */
         // bdb insert
         Slice bdbkey = ExtractSequenceNumandValueTypeforString(key);
+        std::cout << "insert " << ExtractUserKey(key).ToString() << " " << ExtractSequenceNumber(key) << " " << ExtractValueType(key) << std::endl;
         Slice bdbvalue = iter->value();
         Dbt* bdb_key = new Dbt(const_cast<char*>(bdbkey.data()), bdbkey.size());
         Dbt* bdb_value = new Dbt(const_cast<char*>(bdbvalue.data()), bdbvalue.size());
