@@ -62,7 +62,7 @@ class Repairer {
     table_cache_ = new TableCache(dbname_, &options_, 10);
 #ifdef BDB
     bdb_ = new Db(NULL, 0);
-    assert(bdb_->open(NULL, impl->bdbname_.c_str(), NULL, DB_BTREE, DB_CREATE, 0644) == 0);
+    assert(bdb_->open(NULL, bdbname_.c_str(), NULL, DB_BTREE, DB_CREATE, 0644) == 0);
 #endif
   }
 
