@@ -1017,7 +1017,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         }
       }
     }
-#ifdef BDB
+#ifdef BDBDROP
       else {
       std::string bdbkey = std::to_string(ExtractSequenceNumber(key));
       std::cout << "bdb del key/value " << bdbkey << std::endl;
