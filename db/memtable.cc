@@ -105,7 +105,11 @@ void MemTable::Add(SequenceNumber s, ValueType type,
   table_.Insert(buf);
 }
 
+#ifdef BDB
+bool MemTable::Get(const LookupKey& key, std::string* value, Status* s, Db* bdb) {
+#else
 bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
+#endif
   Slice memkey = key.memtable_key();
   Table::Iterator iter(&table_);
   iter.Seek(memkey.data());
@@ -119,6 +123,35 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
     // Check that it belongs to same user key.  We do not check the
     // sequence number since the Seek() call above should have skipped
     // all entries with overly large sequence numbers.
+#ifdef BDB
+    const char* entry = iter.key();
+    uint32_t key_length;
+    const char* key_ptr = GetVarint32Ptr(entry, entry+5, &key_length);
+    if (comparator_.comparator.user_comparator()->Compare(
+            Slice(key_ptr, key_length - 8),
+            key.user_key()) == 0) {
+      // Correct user key
+      const uint64_t tag = DecodeFixed64(key_ptr + key_length - 8);
+      switch (static_cast<ValueType>(tag & 0xff)) {
+        case kTypeValue: {
+          std::string bdbkey = std::to_string(ExtractSequenceNumber(entry));
+          Dbt* bdb_key = new Dbt(const_cast<char *>(bdbkey.c_str()), bdbkey.size());
+          Dbt* bdb_value = new Dbt();
+          bdb_value->set_flags(DB_DBT_MALLOC);
+          if (bdb->get(NULL, bdb_key, bdb_value, 0) == 0) {
+            Slice v = Slice((char *)(bdb_value->get_data()));
+            value->assign(v.data(), v.size());
+          } else {
+            *s = Status::NotFound(Slice());
+          }
+          return true;
+        }
+        case kTypeDeletion:
+          *s = Status::NotFound(Slice());
+          return true;
+      }
+    }
+#else
     const char* entry = iter.key();
     uint32_t key_length;
     const char* key_ptr = GetVarint32Ptr(entry, entry+5, &key_length);
@@ -138,6 +171,7 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
           return true;
       }
     }
+#endif
   }
   return false;
 }

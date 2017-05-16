@@ -1156,18 +1156,25 @@ Status DBImpl::Get(const ReadOptions& options,
     mutex_.Unlock();
     // First look in the memtable, then in the immutable memtable (if any).
     LookupKey lkey(key, snapshot);
+#ifdef BDB
+    if (mem->Get(lkey, value, &s, bdb_)) {
+      // Done
+    } else if (imm != NULL && imm->Get(lkey, value, &s, bdb_)) {
+      // Done
+    } else {
+      s = current->Get(options, lkey, value, &stats, bdb_);
+      have_stat_update = true;
+    }
+#else
     if (mem->Get(lkey, value, &s)) {
       // Done
     } else if (imm != NULL && imm->Get(lkey, value, &s)) {
       // Done
     } else {
-#ifdef BDB
-      s = current->Get(options, lkey, value, &stats, bdb_);
-#else
       s = current->Get(options, lkey, value, &stats);
-#endif
       have_stat_update = true;
     }
+#endif
     mutex_.Lock();
   }
 
