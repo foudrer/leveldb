@@ -126,6 +126,7 @@ class MemTableInserter : public WriteBatch::Handler {
     Dbt* bdb_value = new Dbt(const_cast<char*>(value.data()), value.size());
     int ret = bdb_->put(NULL, bdb_key, bdb_value, 0);
     assert(ret == 0);
+    std::cout << "bdb insert key/value " << number << std::endl;
     mem_->Add(sequence_, kTypeValue, key, Slice());
 #else
     mem_->Add(sequence_, kTypeValue, key, value);

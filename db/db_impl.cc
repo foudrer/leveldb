@@ -1020,6 +1020,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 #ifdef BDB
       else {
       std::string bdbkey = std::to_string(ExtractSequenceNumber(key));
+      std::cout << "bdb del key/value " << bdbkey << std::endl;
       Dbt* bdb_key = new Dbt(const_cast<char *>(bdbkey.c_str()), bdbkey.size());
       if (bdb_->del(NULL, bdb_key, 0) != 0) {
         status = Status::Corruption("BDB del failure");
