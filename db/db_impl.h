@@ -118,6 +118,10 @@ class DBImpl : public DB {
   Status InstallCompactionResults(CompactionState* compact)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
+  // bdb handler
+  Db* bdb_;
+  const std::string bdbname_;
+
   // Constant after construction
   Env* const env_;
   const InternalKeyComparator internal_comparator_;

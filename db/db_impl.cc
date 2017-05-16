@@ -123,6 +123,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       owns_info_log_(options_.info_log != raw_options.info_log),
       owns_cache_(options_.block_cache != raw_options.block_cache),
       dbname_(dbname),
+      bdbname_(dbname + "/lsm.db"),
       db_lock_(NULL),
       shutting_down_(NULL),
       bg_cv_(&mutex_),
@@ -143,6 +144,8 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 
   versions_ = new VersionSet(dbname_, &options_, table_cache_,
                              &internal_comparator_);
+
+  bdb_ = new Db(NULL, 0);
 }
 
 DBImpl::~DBImpl() {
@@ -165,6 +168,7 @@ DBImpl::~DBImpl() {
   delete log_;
   delete logfile_;
   delete table_cache_;
+  delete bdb_;
 
   if (owns_info_log_) {
     delete options_.info_log;
@@ -1496,7 +1500,13 @@ Status DB::Open(const Options& options, const std::string& dbname,
   VersionEdit edit;
   // Recover handles create_if_missing, error_if_exists
   bool save_manifest = false;
-  Status s = impl->Recover(&edit, &save_manifest);
+  Status s;
+
+  if (impl->bdb_->open(NULL, impl->bdbname_.c_str(), NULL, DB_BTREE, DB_CREATE, 0644) != 0) {
+    s = Status::Corruption("BDB Open error");
+  }
+
+  s = impl->Recover(&edit, &save_manifest);
   if (s.ok() && impl->mem_ == NULL) {
     // Create new log and a corresponding memtable.
     uint64_t new_log_number = impl->versions_->NewFileNumber();

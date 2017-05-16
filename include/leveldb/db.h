@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include "leveldb/iterator.h"
 #include "leveldb/options.h"
+#include "bdb/db_cxx.h"
 
 namespace leveldb {
 
