@@ -1161,7 +1161,11 @@ Status DBImpl::Get(const ReadOptions& options,
     } else if (imm != NULL && imm->Get(lkey, value, &s)) {
       // Done
     } else {
+#ifdef BDB
+      s = current->Get(options, lkey, value, &stats, bdb_);
+#else
       s = current->Get(options, lkey, value, &stats);
+#endif
       have_stat_update = true;
     }
     mutex_.Lock();

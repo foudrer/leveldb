@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include "leveldb/iterator.h"
+#include "bdb/db_cxx.h"
 
 namespace leveldb {
 
@@ -66,10 +67,18 @@ class Table {
   // to Seek(key).  May not make such a call if filter policy says
   // that key is not present.
   friend class TableCache;
+#ifdef BDB
+ Status InternalGet(
+      const ReadOptions&, const Slice& key,
+      void* arg,
+      void (*handle_result)(void* arg, const Slice& k, const Slice& v),
+      Db* bdb);
+#else
   Status InternalGet(
       const ReadOptions&, const Slice& key,
       void* arg,
       void (*handle_result)(void* arg, const Slice& k, const Slice& v));
+#endif
 
 
   void ReadMeta(const Footer& footer);

@@ -18,6 +18,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include "bdb/db_cxx.h"
 #include "db/dbformat.h"
 #include "db/version_edit.h"
 #include "port/port.h"
@@ -70,8 +71,14 @@ class Version {
     FileMetaData* seek_file;
     int seek_file_level;
   };
+
+#ifdef BDB
+  Status Get(const ReadOptions&, const LookupKey& key, std::string* val,
+             GetStats* stats, Db* bdb);
+#else
   Status Get(const ReadOptions&, const LookupKey& key, std::string* val,
              GetStats* stats);
+#endif
 
   // Adds "stats" into the current state.  Returns true if a new
   // compaction may need to be triggered, false otherwise.

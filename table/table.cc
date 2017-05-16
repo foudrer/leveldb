@@ -14,6 +14,9 @@
 #include "table/format.h"
 #include "table/two_level_iterator.h"
 #include "util/coding.h"
+#include "db/dbformat.h"
+
+#include <iostream>
 
 namespace leveldb {
 
@@ -222,10 +225,16 @@ Iterator* Table::NewIterator(const ReadOptions& options) const {
       rep_->index_block->NewIterator(rep_->options.comparator),
       &Table::BlockReader, const_cast<Table*>(this), options);
 }
-
+#ifdef BDB
+Status Table::InternalGet(const ReadOptions& options, const Slice& k,
+                          void* arg,
+                          void (*saver)(void*, const Slice&, const Slice&),
+                          Db* bdb) {
+#else
 Status Table::InternalGet(const ReadOptions& options, const Slice& k,
                           void* arg,
                           void (*saver)(void*, const Slice&, const Slice&)) {
+#endif
   Status s;
   Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
   iiter->Seek(k);
@@ -241,7 +250,19 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k,
       Iterator* block_iter = BlockReader(this, options, iiter->value());
       block_iter->Seek(k);
       if (block_iter->Valid()) {
+#ifdef BDB
+        std::string bdbkey = std::to_string(ExtractSequenceNumber(block_iter->key()));
+        Dbt* bdb_key = new Dbt(const_cast<char *>(bdbkey.c_str()), bdbkey.size());
+        Dbt* bdb_value = new Dbt();
+        bdb_value->set_flags(DB_DBT_MALLOC);
+        if (bdb->get(NULL, bdb_key, bdb_value, 0) == 0) {
+         // std::cout << "bdb find it" << std::endl;
+          Slice value = Slice((char *)(bdb_value->get_data()));
+          (*saver)(arg, block_iter->key(), value);
+        }
+#else
         (*saver)(arg, block_iter->key(), block_iter->value());
+#endif
       }
       s = block_iter->status();
       delete block_iter;

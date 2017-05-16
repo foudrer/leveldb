@@ -329,10 +329,18 @@ void Version::ForEachOverlapping(Slice user_key, Slice internal_key,
   }
 }
 
+#ifdef BDB
+Status Version::Get(const ReadOptions& options,
+                    const LookupKey& k,
+                    std::string* value,
+                    GetStats* stats,
+                    Db* bdb) {
+#else
 Status Version::Get(const ReadOptions& options,
                     const LookupKey& k,
                     std::string* value,
                     GetStats* stats) {
+#endif
   Slice ikey = k.internal_key();
   Slice user_key = k.user_key();
   const Comparator* ucmp = vset_->icmp_.user_comparator();
@@ -405,8 +413,13 @@ Status Version::Get(const ReadOptions& options,
       saver.ucmp = ucmp;
       saver.user_key = user_key;
       saver.value = value;
+#ifdef BDB
+      s = vset_->table_cache_->Get(options, f->number, f->file_size,
+                                   ikey, &saver, SaveValue, bdb);
+#else
       s = vset_->table_cache_->Get(options, f->number, f->file_size,
                                    ikey, &saver, SaveValue);
+#endif
       if (!s.ok()) {
         return s;
       }
