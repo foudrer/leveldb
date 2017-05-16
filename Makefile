@@ -6,8 +6,10 @@
 # Uncomment exactly one of the lines labelled (A), (B), and (C) below
 # to switch between compilation modes.
 
-# (A) Production use (optimized mode)
-OPT ?= -O2 -DNDEBUG
+# (A)-1 Original Production use (optimized mode)
+# OPT ?= -O2 -DNDEBUG
+# (A)-2 BDB Support Production use (optimized mode)
+OPT ?= -O2 -DNDEBUG -DBDB
 # (B) Debug mode, w/ full line-level debugging symbols
 # OPT ?= -g2
 # (C) Profiling mode: opt, but w/debugging symbols

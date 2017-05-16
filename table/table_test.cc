@@ -769,8 +769,13 @@ TEST(MemTableTest, Simple) {
   batch.Put(std::string("k2"), std::string("v2"));
   batch.Put(std::string("k3"), std::string("v3"));
   batch.Put(std::string("largekey"), std::string("vlarge"));
+#ifdef BDB
+  Db* bdb = new Db(NULL, 0);
+  assert(bdb->open(NULL, "/tmp/lsm.db", NULL, DB_BTREE, DB_CREATE, 0644) == 0);
+  ASSERT_TRUE(WriteBatchInternal::InsertInto(&batch, memtable, bdb).ok());
+#else
   ASSERT_TRUE(WriteBatchInternal::InsertInto(&batch, memtable).ok());
-
+#endif
   Iterator* iter = memtable->NewIterator();
   iter->SeekToFirst();
   while (iter->Valid()) {

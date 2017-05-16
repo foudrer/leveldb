@@ -16,10 +16,12 @@
 #include "leveldb/write_batch.h"
 
 #include "leveldb/db.h"
+#include "bdb/db_cxx.h"
 #include "db/dbformat.h"
 #include "db/memtable.h"
 #include "db/write_batch_internal.h"
 #include "util/coding.h"
+#include <iostream>
 
 namespace leveldb {
 
@@ -113,9 +115,20 @@ class MemTableInserter : public WriteBatch::Handler {
  public:
   SequenceNumber sequence_;
   MemTable* mem_;
+#ifdef BDB
+  Db* bdb_;
+#endif
 
   virtual void Put(const Slice& key, const Slice& value) {
+#ifdef BDB
+    std::string number = std::to_string(sequence_);
+    Dbt* bdb_key = new Dbt(const_cast<char*>(number.c_str()), number.size());
+    Dbt* bdb_value = new Dbt(const_cast<char*>(value.data()), value.size());
+    bdb_->put(NULL, bdb_key, bdb_value, 0);
+    mem_->Add(sequence_, kTypeValue, key, Slice());
+#else
     mem_->Add(sequence_, kTypeValue, key, value);
+#endif
     sequence_++;
   }
   virtual void Delete(const Slice& key) {
@@ -125,6 +138,17 @@ class MemTableInserter : public WriteBatch::Handler {
 };
 }  // namespace
 
+#ifdef BDB
+Status WriteBatchInternal::InsertInto(const WriteBatch* b,
+                                      MemTable* memtable,
+                                      Db* bdb) {
+  MemTableInserter inserter;
+  inserter.sequence_ = WriteBatchInternal::Sequence(b);
+  inserter.mem_ = memtable;
+  inserter.bdb_ = bdb;
+  return b->Iterate(&inserter);
+}
+#else
 Status WriteBatchInternal::InsertInto(const WriteBatch* b,
                                       MemTable* memtable) {
   MemTableInserter inserter;
@@ -132,6 +156,7 @@ Status WriteBatchInternal::InsertInto(const WriteBatch* b,
   inserter.mem_ = memtable;
   return b->Iterate(&inserter);
 }
+#endif
 
 void WriteBatchInternal::SetContents(WriteBatch* b, const Slice& contents) {
   assert(contents.size() >= kHeader);

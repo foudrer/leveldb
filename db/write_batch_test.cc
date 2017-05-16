@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "bdb/db_cxx.h"
 #include "leveldb/db.h"
 
 #include "db/memtable.h"
@@ -9,6 +10,7 @@
 #include "leveldb/env.h"
 #include "util/logging.h"
 #include "util/testharness.h"
+#include <assert.h>
 
 namespace leveldb {
 
@@ -17,7 +19,14 @@ static std::string PrintContents(WriteBatch* b) {
   MemTable* mem = new MemTable(cmp);
   mem->Ref();
   std::string state;
+
+#ifdef BDB
+  Db* bdb = new Db(NULL, 0);
+  assert(bdb->open(NULL, "/tmp/lsm.db", NULL, DB_BTREE, DB_CREATE, 0644) == 0);
+  Status s = WriteBatchInternal::InsertInto(b, mem, bdb);
+#else
   Status s = WriteBatchInternal::InsertInto(b, mem);
+#endif
   int count = 0;
   Iterator* iter = mem->NewIterator();
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {

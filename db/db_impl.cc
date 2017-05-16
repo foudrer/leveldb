@@ -123,7 +123,9 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       owns_info_log_(options_.info_log != raw_options.info_log),
       owns_cache_(options_.block_cache != raw_options.block_cache),
       dbname_(dbname),
+#ifdef BDB
       bdbname_(dbname + "/lsm.db"),
+#endif
       db_lock_(NULL),
       shutting_down_(NULL),
       bg_cv_(&mutex_),
@@ -144,8 +146,9 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 
   versions_ = new VersionSet(dbname_, &options_, table_cache_,
                              &internal_comparator_);
-
+#ifdef BDB
   bdb_ = new Db(NULL, 0);
+#endif
 }
 
 DBImpl::~DBImpl() {
@@ -168,7 +171,9 @@ DBImpl::~DBImpl() {
   delete log_;
   delete logfile_;
   delete table_cache_;
+#ifdef BDB
   delete bdb_;
+#endif
 
   if (owns_info_log_) {
     delete options_.info_log;
@@ -421,13 +426,18 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
           record.size(), Status::Corruption("log record too small"));
       continue;
     }
+
     WriteBatchInternal::SetContents(&batch, record);
 
     if (mem == NULL) {
       mem = new MemTable(internal_comparator_);
       mem->Ref();
     }
+#ifdef BDB
+    status = WriteBatchInternal::InsertInto(&batch, mem, bdb_);
+#else
     status = WriteBatchInternal::InsertInto(&batch, mem);
+#endif
     MaybeIgnoreError(&status);
     if (!status.ok()) {
       break;
@@ -1234,7 +1244,11 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* my_batch) {
         }
       }
       if (status.ok()) {
+#ifdef BDB
+        status = WriteBatchInternal::InsertInto(updates, mem_, bdb_);
+#else
         status = WriteBatchInternal::InsertInto(updates, mem_);
+#endif
       }
       mutex_.Lock();
       if (sync_error) {
@@ -1501,11 +1515,11 @@ Status DB::Open(const Options& options, const std::string& dbname,
   // Recover handles create_if_missing, error_if_exists
   bool save_manifest = false;
   Status s;
-
+#ifdef BDB
   if (impl->bdb_->open(NULL, impl->bdbname_.c_str(), NULL, DB_BTREE, DB_CREATE, 0644) != 0) {
     s = Status::Corruption("BDB Open error");
   }
-
+#endif
   s = impl->Recover(&edit, &save_manifest);
   if (s.ok() && impl->mem_ == NULL) {
     // Create new log and a corresponding memtable.

@@ -119,8 +119,10 @@ class DBImpl : public DB {
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // bdb handler
+#ifdef BDB
   Db* bdb_;
   const std::string bdbname_;
+#endif
 
   // Constant after construction
   Env* const env_;

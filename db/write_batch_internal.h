@@ -5,6 +5,7 @@
 #ifndef STORAGE_LEVELDB_DB_WRITE_BATCH_INTERNAL_H_
 #define STORAGE_LEVELDB_DB_WRITE_BATCH_INTERNAL_H_
 
+#include "bdb/db_cxx.h"
 #include "db/dbformat.h"
 #include "leveldb/write_batch.h"
 
@@ -39,7 +40,11 @@ class WriteBatchInternal {
 
   static void SetContents(WriteBatch* batch, const Slice& contents);
 
+#ifdef BDB
+  static Status InsertInto(const WriteBatch* batch, MemTable* memtable, Db* bdb);
+#else
   static Status InsertInto(const WriteBatch* batch, MemTable* memtable);
+#endif
 
   static void Append(WriteBatch* dst, const WriteBatch* src);
 };

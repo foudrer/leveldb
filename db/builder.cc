@@ -38,13 +38,14 @@ Status BuildTable(const std::string& dbname,
     for (; iter->Valid(); iter->Next()) {
       Slice key = iter->key();
       meta->largest.DecodeFrom(key);
-      // builder->Add(key, iter->value());
-      builder->Add(key, Slice());
+      builder->Add(key, iter->value());  // here, iter->value() is nullptr
+      /*
       std::cout << meta->largest.DebugString() << std::endl;
       std::cout << "usekey " << ExtractUserKey(key).ToString() << std::endl;
       std::cout << "seqnumbervaluetype " << ExtractSequenceNumberandValueType(key) << std::endl;
       std::cout << "seqnumber " << ExtractSequenceNumber(key) << std::endl;
       std::cout << "valueType " << ExtractValueType(key) << std::endl;
+      */
     }
 
     // Finish and check for builder errors

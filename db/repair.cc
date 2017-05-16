@@ -37,6 +37,8 @@
 #include "leveldb/comparator.h"
 #include "leveldb/db.h"
 #include "leveldb/env.h"
+#include "bdb/db_cxx.h"
+#include <assert.h>
 
 namespace leveldb {
 
@@ -46,6 +48,9 @@ class Repairer {
  public:
   Repairer(const std::string& dbname, const Options& options)
       : dbname_(dbname),
+#ifdef BDB
+        bdbname_(dbname + "/lsm.db"),
+#endif
         env_(options.env),
         icmp_(options.comparator),
         ipolicy_(options.filter_policy),
@@ -55,6 +60,10 @@ class Repairer {
         next_file_number_(1) {
     // TableCache can be small since we expect each table to be opened once.
     table_cache_ = new TableCache(dbname_, &options_, 10);
+#ifdef BDB
+    bdb_ = new Db(NULL, 0);
+    assert(bdb_->open(NULL, impl->bdbname_.c_str(), NULL, DB_BTREE, DB_CREATE, 0644) == 0);
+#endif
   }
 
   ~Repairer() {
@@ -98,6 +107,10 @@ class Repairer {
   };
 
   std::string const dbname_;
+#ifdef BDB
+  Db* bdb_;
+  std::string const bdbname_;
+#endif
   Env* const env_;
   InternalKeyComparator const icmp_;
   InternalFilterPolicy const ipolicy_;
@@ -207,7 +220,11 @@ class Repairer {
         continue;
       }
       WriteBatchInternal::SetContents(&batch, record);
+#ifdef BDB
+      status = WriteBatchInternal::InsertInto(&batch, mem, bdb_);
+#else
       status = WriteBatchInternal::InsertInto(&batch, mem);
+#endif
       if (status.ok()) {
         counter += WriteBatchInternal::Count(&batch);
       } else {
