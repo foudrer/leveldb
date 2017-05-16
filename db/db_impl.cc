@@ -1537,7 +1537,7 @@ Status DB::Open(const Options& options, const std::string& dbname,
   bool save_manifest = false;
   Status s;
 #ifdef BDB
-  if (impl->bdb_->open(NULL, impl->bdbname_.c_str(), NULL, DB_BTREE, DB_CREATE, 0644) != 0) {
+  if (impl->bdb_->open(NULL, impl->bdbname_.c_str(), NULL, DB_BTREE, DB_CREATE | DB_THREAD, 0644) != 0) {
     s = Status::Corruption("BDB Open error");
   }
 #endif
