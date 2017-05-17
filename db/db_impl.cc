@@ -173,6 +173,7 @@ DBImpl::~DBImpl() {
   delete table_cache_;
 #ifdef BDB
   bdb_->close(0);
+  delete bdb_;
 #endif
 
   if (owns_info_log_) {
@@ -1022,10 +1023,13 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       std::string bdbkey = std::to_string(ExtractSequenceNumber(key));
       // std::cout << "bdb del key/value " << bdbkey << std::endl;
       Dbt* bdb_key = new Dbt(const_cast<char *>(bdbkey.c_str()), bdbkey.size());
+      bdb_->del(NULL, bdb_key, 0);
+      /*
       if (bdb_->del(NULL, bdb_key, 0) != 0) {
         status = Status::Corruption("BDB del failure");
         break;
       }
+      */
     }
 #endif
     input->Next();
