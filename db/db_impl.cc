@@ -172,7 +172,7 @@ DBImpl::~DBImpl() {
   delete logfile_;
   delete table_cache_;
 #ifdef BDB
-  delete bdb_;
+  bdb_->close(0);
 #endif
 
   if (owns_info_log_) {
